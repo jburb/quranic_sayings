@@ -47,16 +47,82 @@ npx expo start --web
 
 The web version runs at `http://localhost:8081` by default.
 
+## Previewing on a device
+
+### With Expo Go (quickest)
+
+1. Install **Expo Go** from the App Store (iOS) or Google Play (Android).
+2. Run `npx expo start` on your dev machine.
+3. Scan the QR code shown in the terminal:
+   - **Android** — use the Expo Go app's scanner.
+   - **iOS** — use the built-in Camera app; it will offer to open in Expo Go.
+4. The app loads over your local network. Changes hot-reload automatically.
+
+> Your phone and dev machine must be on the same Wi-Fi network. If you're behind a firewall or VPN, use `npx expo start --tunnel` (requires `@expo/ngrok`).
+
+### In a simulator / emulator
+
+```bash
+# iOS Simulator (macOS only, requires Xcode)
+npx expo start --ios
+
+# Android Emulator (requires Android Studio + an AVD)
+npx expo start --android
+```
+
 ## Building for production
 
 ```bash
 # Web export (static files in dist/)
 npx expo export --platform web
-
-# Native builds (requires EAS or local Xcode / Android SDK)
-npx expo run:ios
-npx expo run:android
 ```
+
+### Packaging native builds with EAS
+
+[EAS Build](https://docs.expo.dev/build/introduction/) is Expo's cloud build service. It produces `.ipa` (iOS) and `.apk` / `.aab` (Android) files without requiring local Xcode or Android SDK installs.
+
+```bash
+# One-time setup
+npm install -g eas-cli
+eas login
+eas build:configure   # generates eas.json
+
+# Development build (installable, includes dev tools)
+eas build --platform ios --profile development
+eas build --platform android --profile development
+
+# Production build
+eas build --platform ios --profile production
+eas build --platform android --profile production
+```
+
+After the build completes, EAS provides a download link. For iOS production builds you'll also need an Apple Developer account ($99/year) to sign and submit to the App Store.
+
+### Local native builds (no EAS)
+
+If you prefer to build locally:
+
+```bash
+# Generate native projects (creates ios/ and android/ dirs)
+npx expo prebuild
+
+# iOS (macOS only — requires Xcode and CocoaPods)
+cd ios && pod install && cd ..
+npx expo run:ios --configuration Release
+
+# Android (requires Android SDK and JDK 17+)
+npx expo run:android --variant release
+```
+
+### Deploying to devices
+
+| Target | Method |
+|--------|--------|
+| **iOS (TestFlight)** | Upload the `.ipa` from EAS or Xcode to App Store Connect → TestFlight. Testers install via the TestFlight app. |
+| **iOS (Ad Hoc)** | Register device UDIDs in your Apple Developer portal, rebuild with an ad-hoc provisioning profile, then share the `.ipa` directly. |
+| **Android (direct install)** | Download the `.apk` onto the device and open it (enable "Install unknown apps" in settings). |
+| **Android (Play Store)** | Upload the `.aab` to the Google Play Console for internal testing or production release. |
+| **EAS Update (OTA)** | After the initial native build, push JS-only updates without rebuilding: `eas update --branch production`. |
 
 ## Regenerating passage data
 
