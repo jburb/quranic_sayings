@@ -47,6 +47,24 @@ function passageToHtml(p: QulPassage, highlight: boolean): string {
 }
 
 /** Wrap passage fragments in a full HTML document. */
+/**
+ * Render passages as a self-contained HTML fragment (no <html>/<body> wrapper).
+ * Suitable for injecting into a DOM container for html2pdf.js.
+ */
+export function passagesToHtmlFragment(
+  passages: QulPassage[],
+  translationLabel: string,
+  highlight: boolean
+): string {
+  const body = passages.map((p) => passageToHtml(p, highlight)).join("\n");
+  return `<div style="font-family: Georgia, 'Times New Roman', serif; font-size: 17px; color: #1a1a1a; padding: 16px; max-width: 720px;">
+  <h1 style="font-size: 24px; margin: 0 0 4px;">Qul Reader</h1>
+  <p style="font-size: 14px; color: #666; margin: 0 0 2px;">Quranic sayings of the Prophet Muhammad PBUH.</p>
+  <p style="font-size: 13px; color: #888; margin: 0 0 16px;">${escapeHtml(translationLabel)} — ${passages.length} passages</p>
+  ${body}
+</div>`;
+}
+
 export function passagesToHtmlDocument(
   passages: QulPassage[],
   translationLabel: string,
