@@ -3,18 +3,34 @@ import { QulPassage } from "../types";
 import { passagesToHtmlDocument } from "./htmlRenderer";
 
 /**
- * On web: open the HTML in a new window and trigger the browser's print
- * dialog (Firefox / Chrome both offer "Save as PDF" from there).
+ * On web: render the HTML into a hidden container, convert to a real PDF
+ * file via html2pdf.js, and trigger a browser download.
  */
-function exportPdfWeb(html: string): void {
-  const win = window.open("", "_blank");
-  if (!win) {
-    throw new Error("Pop-up blocked — please allow pop-ups for this site and try again.");
+async function exportPdfWeb(html: string, filename: string): Promise<void> {
+  const html2pdf = (await import("html2pdf.js")).default;
+
+  // Create an off-screen container so html2pdf can measure the DOM
+  const container = document.createElement("div");
+  container.innerHTML = html;
+  container.style.position = "absolute";
+  container.style.left = "-9999px";
+  container.style.width = "720px";
+  document.body.appendChild(container);
+
+  try {
+    await html2pdf()
+      .set({
+        margin: [10, 10, 10, 10],
+        filename,
+        html2canvas: { scale: 2, useCORS: true },
+        jsPDF: { unit: "mm", format: "a4", orientation: "portrait" },
+        pagebreak: { mode: ["css", "legacy"] },
+      })
+      .from(container)
+      .save();
+  } finally {
+    document.body.removeChild(container);
   }
-  win.document.write(html);
-  win.document.close();
-  // Small delay so the content renders before the print dialog opens
-  setTimeout(() => win.print(), 300);
 }
 
 /**
@@ -49,7 +65,7 @@ export async function exportPdf(
   const html = passagesToHtmlDocument(passages, translationLabel, highlight);
 
   if (Platform.OS === "web") {
-    exportPdfWeb(html);
+    await exportPdfWeb(html, `qul-reader-${translationLabel.replace(/\s+/g, "-").toLowerCase()}.pdf`);
   } else {
     await exportPdfNative(html, translationLabel);
   }
