@@ -26,6 +26,21 @@ QUL_FILE = "qul_ayah_starts_20260427_224202.json"
 TRANSLATIONS = [
     "files/en.asad.json",
     "files/en.sahih.json",
+    "files/en.ahmedali.json",
+    "files/en.ahmedraza.json",
+    "files/en.arberry.json",
+    "files/en.daryabadi.json",
+    "files/en.hilali.json",
+    "files/en.itani.json",
+    "files/en.maududi.json",
+    "files/en.mubarakpuri.json",
+    "files/en.pickthall.json",
+    "files/en.qarai.json",
+    "files/en.qaribullah.json",
+    "files/en.sarwar.json",
+    "files/en.shakir.json",
+    "files/en.wahiduddin.json",
+    "files/en.yusufali.json",
 ]
 
 with open(QUL_FILE, "r", encoding="utf-8") as f:
