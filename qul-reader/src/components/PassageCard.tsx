@@ -1,6 +1,7 @@
 import React, { useMemo } from "react";
 import { View, Text, StyleSheet } from "react-native";
 import { QulPassage, FontChoice } from "../types";
+import { computeSegments } from "../segmentation";
 
 interface Props {
   passage: QulPassage;
@@ -13,131 +14,6 @@ const FONT_FAMILIES: Record<FontChoice, string | undefined> = {
   serif: "Georgia",
   "noto-serif": "NotoSerif",
 };
-
-const SAY_RE = /\bsay\b/gi;
-
-/**
- * Words that, when immediately preceding "say", indicate narrative usage
- * (e.g. "they say", "you say", "would say") rather than the Quranic imperative.
- */
-const NARRATIVE_BEFORE = /(?:they|you|we|I|people|who|would|will|shall|could|can|did|to|not|also)\s+$/i;
-
-/** A text span with an optional highlight flag. */
-interface Span {
-  text: string;
-  hl: boolean;
-}
-
-/**
- * Find highlighted segments within a single ayah's text.
- *
- * Each imperative "Say" opens a highlighted region that runs through its
- * closing quotation mark. Multiple imperative Says in one ayah each get
- * their own highlighted region. Narrative uses ("they say", etc.) are skipped.
- *
- * @param quoteOpen  Whether we're already inside a quoted Say from a prior ayah.
- * @returns [spans, quoteStillOpen]  —  the text broken into plain/highlighted
- *          spans, plus whether the quote is still open at the end of this ayah.
- */
-function segmentAyah(text: string, quoteOpen: boolean): [Span[], boolean] {
-  const spans: Span[] = [];
-  let pos = 0;
-  let inQuote = quoteOpen;
-
-  // If we're already inside a quoted Say from a prior ayah, track quote depth
-  // through this ayah to find where it closes.
-  if (inQuote) {
-    for (let i = 0; i < text.length; i++) {
-      if (text[i] === '"') {
-        // Toggle: this is either opening a nested quote or closing the current one.
-        // Since the Say quote was already open, the first " we see closes it.
-        // But we need paired tracking: count opens/closes.
-        // Simple toggle: we entered open, so first " closes.
-        const closeIdx = i + 1;
-        spans.push({ text: text.slice(0, closeIdx), hl: true });
-        pos = closeIdx;
-        inQuote = false;
-        break;
-      }
-    }
-    if (inQuote) {
-      // No close quote found — entire ayah is still inside the Say
-      spans.push({ text, hl: true });
-      return [spans, true];
-    }
-  }
-
-  // Scan remaining text for imperative Says
-  SAY_RE.lastIndex = pos;
-  let m: RegExpExecArray | null;
-  while ((m = SAY_RE.exec(text)) !== null) {
-    const before = text.slice(Math.max(0, m.index - 15), m.index);
-    if (NARRATIVE_BEFORE.test(before)) {
-      continue; // narrative use
-    }
-
-    // Push plain text before this Say
-    if (m.index > pos) {
-      spans.push({ text: text.slice(pos, m.index), hl: false });
-    }
-
-    const sayStart = m.index;
-
-    // Find opening quote after Say
-    const quoteStart = text.indexOf('"', m.index + m[0].length);
-    if (quoteStart < 0) {
-      // No quote — highlight from Say to end of text
-      spans.push({ text: text.slice(sayStart), hl: true });
-      pos = text.length;
-      break;
-    }
-
-    // Find the matching close quote (simple toggle)
-    let depth = 0;
-    let found = false;
-    for (let i = quoteStart; i < text.length; i++) {
-      if (text[i] === '"') {
-        depth = 1 - depth;
-        if (depth === 0) {
-          // Closing quote found
-          spans.push({ text: text.slice(sayStart, i + 1), hl: true });
-          pos = i + 1;
-          SAY_RE.lastIndex = pos;
-          found = true;
-          break;
-        }
-      }
-    }
-
-    if (!found) {
-      // Quote opened but never closed in this ayah — spans to next ayah
-      spans.push({ text: text.slice(sayStart), hl: true });
-      pos = text.length;
-      inQuote = true;
-      break;
-    }
-  }
-
-  // Push any trailing plain text
-  if (pos < text.length) {
-    spans.push({ text: text.slice(pos), hl: false });
-  }
-
-  return [spans, inQuote];
-}
-
-/**
- * Compute highlight segments for all ayahs in a passage.
- * Returns an array (one per ayah) of Span arrays.
- */
-function computeSegments(passage: QulPassage): Span[][] {
-  let quoteOpen = false;
-  return passage.ayahs.map((a) => {
-    const [spans, stillOpen] = segmentAyah(a.text, quoteOpen);
-    quoteOpen = stillOpen;
-    return spans;
-  });
-}
 
 /**
  * Renders a single qul passage card.
@@ -224,7 +100,6 @@ const styles = StyleSheet.create({
     color: "#888",
   },
   highlighted: {
-    backgroundColor: "#FFF3CD",
-    borderRadius: 4,
+    color: "#B8860B",
   },
 });

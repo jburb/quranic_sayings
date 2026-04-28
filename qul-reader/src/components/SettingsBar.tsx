@@ -1,11 +1,15 @@
 import React from "react";
-import { View, Text, TouchableOpacity, StyleSheet, Switch, ScrollView } from "react-native";
-import { ReaderSettings, FontChoice } from "../types";
+import { View, Text, TouchableOpacity, StyleSheet, Switch, ScrollView, Alert } from "react-native";
+import { ReaderSettings, FontChoice, QulPassage } from "../types";
 import { getTranslationList } from "../data";
+import { exportPdf } from "../export/exportPdf";
+import { exportEpub } from "../export/exportEpub";
 
 interface Props {
   settings: ReaderSettings;
   onSettingsChange: (s: ReaderSettings) => void;
+  passages: QulPassage[];
+  translationLabel: string;
 }
 
 const FONT_OPTIONS: { id: FontChoice; label: string }[] = [
@@ -18,8 +22,20 @@ const FONT_OPTIONS: { id: FontChoice; label: string }[] = [
  * A collapsible settings bar at the top of the reader.
  * Allows switching translation, toggling qul highlighting, and choosing a font.
  */
-export default function SettingsBar({ settings, onSettingsChange }: Props) {
+export default function SettingsBar({ settings, onSettingsChange, passages, translationLabel }: Props) {
   const translations = getTranslationList();
+
+  const handleExport = async (format: "pdf" | "epub") => {
+    try {
+      if (format === "pdf") {
+        await exportPdf(passages, translationLabel, settings.highlightEnabled);
+      } else {
+        await exportEpub(passages, translationLabel, settings.highlightEnabled);
+      }
+    } catch (e: any) {
+      Alert.alert("Export failed", e.message ?? "Unknown error");
+    }
+  };
 
   return (
     <View style={styles.container}>
@@ -95,6 +111,25 @@ export default function SettingsBar({ settings, onSettingsChange }: Props) {
           ))}
         </View>
       </View>
+
+      {/* Export buttons */}
+      <View style={styles.row}>
+        <Text style={styles.label}>Export</Text>
+        <View style={styles.buttonGroup}>
+          <TouchableOpacity
+            style={styles.exportBtn}
+            onPress={() => handleExport("pdf")}
+          >
+            <Text style={styles.exportBtnText}>PDF</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.exportBtn}
+            onPress={() => handleExport("epub")}
+          >
+            <Text style={styles.exportBtnText}>EPUB</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
     </View>
   );
 }
@@ -144,5 +179,16 @@ const styles = StyleSheet.create({
   pillTextActive: {
     color: "#fff",
     fontWeight: "600",
+  },
+  exportBtn: {
+    paddingHorizontal: 14,
+    paddingVertical: 6,
+    borderRadius: 16,
+    backgroundColor: "#5B7F5E",
+  },
+  exportBtnText: {
+    fontSize: 13,
+    fontWeight: "600",
+    color: "#fff",
   },
 });

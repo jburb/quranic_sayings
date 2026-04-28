@@ -1,11 +1,12 @@
-import React, { useState, useCallback } from "react";
+import React, { useState, useCallback, useMemo } from "react";
 import { FlatList, SafeAreaView, StatusBar, StyleSheet, Text, View } from "react-native";
 import SettingsBar from "./src/components/SettingsBar";
 import PassageCard from "./src/components/PassageCard";
 import { getPassages, getTranslationList } from "./src/data";
 import { ReaderSettings, QulPassage } from "./src/types";
 
-const defaultTranslation = getTranslationList()[0]?.id ?? "en.asad";
+const translations = getTranslationList();
+const defaultTranslation = translations[0]?.id ?? "en.asad";
 
 export default function App() {
   const [settings, setSettings] = useState<ReaderSettings>({
@@ -15,6 +16,11 @@ export default function App() {
   });
 
   const passages = getPassages(settings.translation);
+
+  const translationLabel = useMemo(
+    () => translations.find((t) => t.id === settings.translation)?.label ?? settings.translation,
+    [settings.translation]
+  );
 
   const renderItem = useCallback(
     ({ item }: { item: QulPassage }) => (
@@ -37,9 +43,15 @@ export default function App() {
       <StatusBar barStyle="dark-content" backgroundColor="#F5F0E8" />
       <View style={styles.titleBar}>
         <Text style={styles.title}>Qul Reader</Text>
+        <Text style={styles.tagline}>Quranic sayings of the Prophet Muhammad PBUH.</Text>
         <Text style={styles.subtitle}>{passages.length} passages</Text>
       </View>
-      <SettingsBar settings={settings} onSettingsChange={setSettings} />
+      <SettingsBar
+        settings={settings}
+        onSettingsChange={setSettings}
+        passages={passages}
+        translationLabel={translationLabel}
+      />
       <FlatList
         data={passages}
         renderItem={renderItem}
@@ -68,6 +80,11 @@ const styles = StyleSheet.create({
     fontSize: 22,
     fontWeight: "700",
     color: "#2C2C2C",
+  },
+  tagline: {
+    fontSize: 14,
+    color: "#666",
+    marginTop: 2,
   },
   subtitle: {
     fontSize: 13,
