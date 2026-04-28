@@ -39,8 +39,21 @@ const TRANSLATIONS: Record<string, { label: string; data: QulPassage[] }> = {
   "en.yusufali":   { label: "Yusuf Ali",               data: yusufaliData as QulPassage[] },
 };
 
+/** Add translation IDs here to hide them from the UI without removing the asset. */
+const HIDDEN: Set<string> = new Set([
+  "en.hilali",
+  "en.itani",
+  "en.qarai",
+  "en.qaribullah",
+  "en.ahmedali",
+  "en.daryabadi",
+  "en.mubarakpuri"
+]);
+
 export function getTranslationList(): { id: string; label: string }[] {
-  return Object.entries(TRANSLATIONS).map(([id, { label }]) => ({ id, label }));
+  return Object.entries(TRANSLATIONS)
+    .filter(([id]) => !HIDDEN.has(id))
+    .map(([id, { label }]) => ({ id, label }));
 }
 
 export function getPassages(translationId: string): QulPassage[] {
